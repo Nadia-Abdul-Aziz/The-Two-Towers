@@ -17,6 +17,8 @@ let fadeAlpha = 0; // Alpha for white fade
 let themeMusic;
 let propPlaneSound;
 let explosionSound;
+let gameStartFrame = 0; // Track when game started for speed scaling
+let lastSpawnFrame = 0; // Track last obstacle spawn
 
 function preload() {
     backgroundSprite = loadImage('pixil-layer-0.png');
@@ -66,6 +68,8 @@ function startGame() {
     fadeAlpha = 0;
     cube.y = height * 0.85;
     cube.velocity = 0;
+    gameStartFrame = frameCount; // Record when game started
+    lastSpawnFrame = frameCount; // Reset spawn tracker
     
     // Start theme music when game starts
     if (themeMusic && !themeMusic.isPlaying()) {
@@ -170,8 +174,17 @@ function handleObstacles(groundY) {
     // Proportional obstacle sizing
     let standardObsSize = height * 0.1;
 
+    // Calculate speed multiplier for spawn rate adjustment
+    let secondsElapsed = (frameCount - gameStartFrame) / 60;
+    let speedMultiplier = 1 + (secondsElapsed * 0.02);
+    speedMultiplier = min(speedMultiplier, 2.5);
+    
+    // Adjust spawn rate based on speed - spawn more frequently as speed increases
+    let spawnInterval = 90 / speedMultiplier; // Spawn faster as speed increases
+
     // Spawn regular obstacles at the very bottom of the screen
-    if (frameCount % 90 === 0 && score < 20) {
+    if (frameCount - lastSpawnFrame >= spawnInterval && score < 20) {
+        lastSpawnFrame = frameCount;
         let currentSpriteIndex = floor(obstacleCount / 7) % obstacleSprites.length;
         let heightMultiplier = 1 + (currentSpriteIndex * 0.7); // 0.7x multiplier
         
@@ -199,8 +212,8 @@ function handleObstacles(groundY) {
         megaObstacleTimer = frameCount;
     }
 
-    // Spawn mega obstacle after 3 second delay (180 frames at 60fps)
-    if (megaObstacleTimer > 0 && frameCount - megaObstacleTimer >= 180 && !megaObstacleSpawned) {
+    // Spawn mega obstacle after 1 second delay (60 frames at 60fps)
+    if (megaObstacleTimer > 0 && frameCount - megaObstacleTimer >= 60 && !megaObstacleSpawned) {
         let megaHeight = height * 0.7; // Mega obstacle is 70% of screen height (increased from 50%)
         obstacles.push({
             x: width,
@@ -215,7 +228,12 @@ function handleObstacles(groundY) {
     }
 
     for (let i = obstacles.length - 1; i >= 0; i--) {
-        obstacles[i].x -= (width * 0.008); // Speed scales with width
+        // Calculate speed multiplier based on time elapsed
+        let secondsElapsed = (frameCount - gameStartFrame) / 60; // Convert frames to seconds
+        let speedMultiplier = 1 + (secondsElapsed * 0.02); // Increase speed by 2% per second
+        speedMultiplier = min(speedMultiplier, 2.5); // Cap at 2.5x speed
+        
+        obstacles[i].x -= (width * 0.008 * speedMultiplier); // Speed scales with width and time
 
         // Draw obstacle with proportionate size
         let spriteToUse = obstacleSprites[obstacles[i].spriteIndex];
