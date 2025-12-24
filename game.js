@@ -14,6 +14,9 @@ let deathSprite2; // pixil-layer-7.png
 let killedByMega = false; // Track if killed by mega obstacle
 let deathTimer = 0; // Timer for death animation
 let fadeAlpha = 0; // Alpha for white fade
+let themeMusic;
+let propPlaneSound;
+let explosionSound;
 
 function preload() {
     backgroundSprite = loadImage('pixil-layer-0.png');
@@ -24,6 +27,9 @@ function preload() {
     obstacleSprites.push(loadImage('pixil-layer-5.png'));
     deathSprite1 = loadImage('pixil-layer-6.png');
     deathSprite2 = loadImage('pixil-layer-7.png');
+    themeMusic = loadSound('Kirby dream land theme song.mp3');
+    propPlaneSound = loadSound('Prop Plane Crash Sound Effect.mp3');
+    explosionSound = loadSound('Big Explosion Sound Effect.mp3');
 }
 
 function setup() {
@@ -60,6 +66,11 @@ function startGame() {
     fadeAlpha = 0;
     cube.y = height * 0.85;
     cube.velocity = 0;
+    
+    // Start theme music when game starts
+    if (themeMusic && !themeMusic.isPlaying()) {
+        themeMusic.loop();
+    }
 }
 
 function draw() {
@@ -177,7 +188,8 @@ function handleObstacles(groundY) {
             width: standardObsSize,
             height: obsHeight,
             isMega: false,
-            spriteIndex: currentSpriteIndex
+            spriteIndex: currentSpriteIndex,
+            soundPlayed: false
         });
         obstacleCount++;
     }
@@ -196,7 +208,8 @@ function handleObstacles(groundY) {
             width: height * 0.2, // Increased width from 0.15 to 0.2
             height: megaHeight, 
             isMega: true,
-            spriteIndex: 3 // Use sprite 5 (index 3 in the array)
+            spriteIndex: 3, // Use sprite 5 (index 3 in the array)
+            soundPlayed: false
         });
         megaObstacleSpawned = true;
     }
@@ -222,6 +235,26 @@ function handleObstacles(groundY) {
             obstacleHitboxHeight = obstacles[i].height * 0.6;
         }
         
+        // Early sound trigger detection (larger hitbox for sound only)
+        let soundTriggerDistance = 40; // Pixels ahead to trigger sound (increased for earlier trigger)
+        if (!obstacles[i].soundPlayed &&
+            cube.x + cube.width + soundTriggerDistance > obstacles[i].x &&
+            cube.x < obstacles[i].x + obstacles[i].width &&
+            cube.y + hitboxPadding < obstacleHitboxY + obstacleHitboxHeight - hitboxPadding &&
+            cube.y + cube.height - hitboxPadding > obstacleHitboxY + hitboxPadding) {
+            // Play sound early and skip the silent beginning
+            if (obstacles[i].isMega) {
+                if (explosionSound) {
+                    explosionSound.play(0, 1, 1, 0.1); // Start at 0.1 seconds to skip silence
+                }
+            } else {
+                if (propPlaneSound) {
+                    propPlaneSound.play(0, 1, 1, 0.15); // Start at 0.15 seconds to skip silence
+                }
+            }
+            obstacles[i].soundPlayed = true;
+        }
+        
         if (cube.x + hitboxPadding < obstacles[i].x + obstacles[i].width - hitboxPadding &&
             cube.x + cube.width - hitboxPadding > obstacles[i].x + hitboxPadding &&
             cube.y + hitboxPadding < obstacleHitboxY + obstacleHitboxHeight - hitboxPadding &&
@@ -230,8 +263,16 @@ function handleObstacles(groundY) {
                 killedByMega = true;
                 deathTimer = frameCount; // Start death timer
                 gameState = 'megaDeath';
+                // Stop theme music
+                if (themeMusic && themeMusic.isPlaying()) {
+                    themeMusic.stop();
+                }
             } else {
                 gameState = 'gameOver';
+                // Stop theme music
+                if (themeMusic && themeMusic.isPlaying()) {
+                    themeMusic.stop();
+                }
             }
         }
 
