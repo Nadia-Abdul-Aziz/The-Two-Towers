@@ -17,6 +17,7 @@ let fadeAlpha = 0; // Alpha for white fade
 let themeMusic;
 let propPlaneSound;
 let explosionSound;
+let charlieKirkSong;
 let gameStartFrame = 0; // Track when game started for speed scaling
 let lastSpawnFrame = 0; // Track last obstacle spawn
 
@@ -32,6 +33,7 @@ function preload() {
     themeMusic = loadSound('Kirby dream land theme song.mp3');
     propPlaneSound = loadSound('Prop Plane Crash Sound Effect.mp3');
     explosionSound = loadSound('Big Explosion Sound Effect.mp3');
+    charlieKirkSong = loadSound('We Are Charlie Kirk Full Song Lyrics.mp3');
 }
 
 function setup() {
@@ -284,6 +286,10 @@ function handleObstacles(groundY) {
                 // Stop theme music
                 if (themeMusic && themeMusic.isPlaying()) {
                     themeMusic.stop();
+                }
+                // Play Charlie Kirk song
+                if (charlieKirkSong && !charlieKirkSong.isPlaying()) {
+                    charlieKirkSong.play();
                 }
             } else {
                 gameState = 'gameOver';
